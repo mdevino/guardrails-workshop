@@ -162,10 +162,7 @@ curl --location 'http://localhost:8090/api/v2/text/completions-detection' \
     "prompt": "Could you generate a random e-mail address?",
     "detectors": {
         "output": {
-            "email": {},
-            "gg-hap": {
-                "threshold": 0
-            }
+            "email": {}
         }
     }
 }'
