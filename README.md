@@ -171,4 +171,4 @@ curl --location 'http://localhost:8090/api/v2/text/completions-detection' \
 }'
 ```
 
-The source code for the e-mail detector can be found on [this repository](TODO: add repository).
+The source code for the e-mail detector can be found on [this repository](https://github.com/mdevino/email-detector).
