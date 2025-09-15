@@ -1,0 +1,65 @@
+services:
+  # Ollama
+  generation-server:
+    image: ollama/ollama:0.11.7
+    container_name: generation-server
+    ports:
+      - "8000:8000"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:8000
+    restart: unless-stopped
+  # # vLLM
+  # generation-server:
+  #   image: quay.io/mdevin0/vllm-cpu
+  #   container_name: generation-server
+  #   command: --model=Qwen/Qwen3-0.6B --max-model-len=1K
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ~/.cache/huggingface:/root/.cache/huggingface
+  #   restart: unless-stopped
+  orchestrator:
+    image: quay.io/mdevin0/guardrails-orchestrator:latest
+    container_name: orchestrator
+    ports:
+      - "8090:8033"
+    volumes:
+      - ${PWD}/orchestrator.yaml:/config/config.yaml
+    environment:
+      - ORCHESTRATOR_CONFIG=/config/config.yaml
+    depends_on:
+      - generation-server
+      - email-detector
+      - gg-hap-detector
+      - sentence-chunker
+    restart: unless-stopped
+  email-detector:
+    image: quay.io/mdevin0/email-detector:latest
+    container_name: email-detector
+    ports:
+      - "8091:8001"
+    restart: unless-stopped
+  gg-hap-detector:
+    image: quay.io/mdevin0/granite-guardian-hap-detector:latest
+    container_name: gg-hap-detector
+    ports:
+      - "8092:8002"
+    volumes:
+      -  ~/.cache/huggingface/:/root/.cache/huggingface/
+    restart: unless-stopped
+  sentence-chunker:
+    image: quay.io/mdevin0/chunker:latest
+    container_name: sentence-chunker
+    ports:
+      - "50052:50051"
+    volumes:
+      - nltk_data:/root/nltk_data/
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+    driver: local
+  nltk_data:
+    driver: local
