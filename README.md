@@ -226,8 +226,8 @@ To do so:
 docker exec -ti sentence-chunker bash
 python
 import nltk
-nltk.download('punkt')
-exit()
+nltk.download('punkt_tab')
+exit
 exit
 ```
 
