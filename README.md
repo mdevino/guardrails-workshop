@@ -1,13 +1,24 @@
+**Table of Contents**
+
+- [1. Overview](#guardrails-workshop)
+- [2. Download images](#download-container-images)
+- [3. Generation Server Setup](#generation-server-setup)
+- [4. Orchestrator Setup](#orchestrator-setup)
+- [5. Simple E-mail Detector Setup](#e-mail-detector-setup)
+- [6. Sentence Chunker Setup](#sentence-chunker-setup)
+- [7. Granite Guardian HAP Detector Setup](#granite-guardian-hap-detector-setup)
+- [8. Summary](#summary)
+
 # Guardrails Workshop
-This document contains the steps necessary to run the guardrails ecosystem locally. 
-The guardrails framework was built to run on production settings.
-However, this tutorial works with small components that can be executed locally.
-The intent of this workshop is not to have a production-ready environment, but to illustrate the components of the guardrails framework and their functionalities.
+This document contains all the steps necessary to run the Guardrails ecosystem locally. 
+The guardrails framework was built to run on bigger production settings.
+However, in this tutorial, we'll work with smaller components that can be executed locally.
+The intent of this workshop is not to have a production-ready environment, but to illustrate the components of the guardrails ecosystem, their functionalities and applicabilities.
 
 
 ## Download Container Images
-The guardrails ecossystem is composed of four component types: generation servers, detectors, chunkers and an orchestrator.
-The commands below can be used to download the docker images for each component.
+The Guardrails ecossystem is composed of four component types: generation servers, detectors, chunkers and an orchestrator.
+Use the commands below to download the docker images for each component.
 
 ```
 docker pull ollama/ollama:0.11.7
@@ -17,13 +28,15 @@ docker pull quay.io/mdevin0/granite-guardian-hap-detector:latest
 docker pull quay.io/mdevin0/chunker:latest
 ```
 
+> [!TIP]
+> If you can't use Docker, you can use [podman](https://podman.io/) and [podman-compose](https://docs.podman.io/en/v5.3.1/markdown/podman-compose.1.html) instead for anything related in this workshop.
 
 ## Generation Server Setup
 **Generation servers** are responsible for serving a generative language model.
 At this point in time, the framework supports servers that comply with the Open AI [Completions](https://platform.openai.com/docs/api-reference/completions) and [Chat Completions](https://platform.openai.com/docs/api-reference/chat) APIs.
 However, only vLLM was tested as a generation server. In this workshop, we will use [Ollama](https://ollama.com/) as our generation server.
 
-We'll be using the official vLLM docker image through docker compose. To start the service, create a file named `docker-compose.yaml` with the following content:
+We'll be using the official Ollama docker image through docker compose. To start the service, create a file named `docker-compose.yaml` with the following content:
 
 ```yaml
 services:
@@ -47,17 +60,27 @@ Then, run `docker compose up` to start the service.
 The next step is to download the generation model.
 To do so, run the following commands on a different terminal:
 
-```
+```bash
 # Get inside generation-server container
 docker exec -ti generation-server bash
+```
+
+```bash
 # Download model
 ollama pull qwen3:0.6b
+```
+
+```bash
 # Exit container
 exit
+```
 
+```bash
 # Test model is listed
 curl localhost:8000/v1/models
-# The output of this command should be similar to this: {"object":"list","data":[{"id":"qwen3:0.6b","object":"model","created":1757891103,"owned_by":"library"}]}
+
+# The output of this command should be similar to this: 
+{"object":"list","data":[{"id":"qwen3:0.6b","object":"model","created":1757891103,"owned_by":"library"}]}
 ```
 
 You can run the following command to test the model:
@@ -69,7 +92,7 @@ curl --location 'http://localhost:8000/v1/completions' \
     "model": "qwen3:0.6b",
     "prompt": "/no_think Hi there! How are you?"
 }'
-````
+```
 
 ## Orchestrator Setup
 Once we have the generation-server up and running, we can setup the orchestrator and configure it to use the generation server. 
@@ -90,11 +113,13 @@ detectors:
         default_threshold: 0.5
 ```
 
-The documentation for the orchestrator config can be found [here](https://github.com/foundation-model-stack/fms-guardrails-orchestrator/blob/main/config/config.yaml).
-Then, run the following command to allow the file to be accessed by containers:
-```sudo chcon -Rt svirt_sandbox_file_t orchestrator.yaml```
+The full documentation for the orchestrator config can be found [here](https://github.com/foundation-model-stack/fms-guardrails-orchestrator/blob/main/config/config.yaml).
 
-Now we need to add the orchestrator service to the compose file. To do so, add the following under `services`:
+> [!TIP]
+> In Linux environments, you may need to run the following command to allow the file to be accessed by containers:
+> ```sudo chcon -Rt svirt_sandbox_file_t orchestrator.yaml```
+
+Now we need to add the orchestrator service to the compose file. To do so, add the following under `services` in `docker-compose.yaml`:
 
 ```yaml
 orchestrator:
@@ -111,7 +136,8 @@ orchestrator:
     restart: unless-stopped
 ```
 
-After that, execute `docker compose up` to bring up both, the generation server and the orchestrator.
+After that, stop running compose and execute `docker compose up` to now bring up both generation server and orchestrator.
+
 To test the connection, you can run the following command:
 
 ```bash
@@ -161,7 +187,7 @@ curl --location 'http://localhost:8090/api/v2/text/completions-detection' \
 --header 'Content-Type: application/json' \
 --data '{
     "model": "qwen3:0.6b",
-    "prompt": "Could you generate a random e-mail address?",
+    "prompt": "/no_think Could you generate a random e-mail address?",
     "detectors": {
         "output": {
             "email": {}
@@ -171,7 +197,6 @@ curl --location 'http://localhost:8090/api/v2/text/completions-detection' \
 ```
 
 The source code for the e-mail detector can be found on [this repository](https://github.com/mdevino/email-detector).
-
 
 ## Sentence Chunker Setup
 Now that we have a detector, we will configure a sentence chunker.
@@ -189,13 +214,13 @@ sentence-chunker:
     restart: unless-stopped
 ```
 
-And the following volume:
+And also add the following volume to `volumes`:
 ```yaml
   nltk_data:
     driver: local
 ```
 
-In the `orchestrator.yaml`, add the following entry right at the top level, right below the `openai` block:
+In the `orchestrator.yaml`, add the `sentence-chunker` entry at the top level, right below the `openai` block:
 
 ```yaml
 chunkers:
@@ -206,8 +231,8 @@ chunkers:
             port: 50051
 ```
 
-The block above registers the chunker in the orchestrator.
-We can also register a version of the e-mail detector configured with the sentence chunker by adding the following entry under `detectors`:
+The block above registers the `sentence-chunker` in the orchestrator.
+We can also register a version of the e-mail detector configured with the sentence chunker by adding the following entry under `detectors` in `orchestrator.yaml`:
 
 ```yaml
 email-sentence:
@@ -219,15 +244,20 @@ email-sentence:
     default_threshold: 0.5
 ```
 
-Now we can start the docker compose services and get into the sentence chunker container to download the necessary model.
+Now, we can start the docker compose services again, and get into the sentence chunker container to download the necessary model.
 To do so:
 
 ```bash
+# Get inside sentence-chunker container
 docker exec -ti sentence-chunker bash
+
+# Initialize python and download punkt_tab lib
 python
 import nltk
 nltk.download('punkt_tab')
-exit
+
+# Exit python and container
+exit()
 exit
 ```
 
@@ -252,9 +282,9 @@ The source code for this chunker is available on [this repository](https://githu
 
 ## Granite Guardian HAP Detector Setup
 
-The last step in this tutorial is configuring HAP (Hate, Abuse and Profanity) detector based a Granite Guardian model.
+The last step in this tutorial is configuring a HAP (Hate, Abuse and Profanity) detector based on Granite Guardian model.
 Granite is a open source family of models developed by IBM under the Apache 2.0 license, which means these models can be used even in enterprise environments.
-We will be using [a Granite Guardian model focused on HAP detection](https://huggingface.co/ibm-granite/granite-guardian-hap-38m).
+From the Granite family, we'll be using [a Granite Guardian model focused on HAP detection](https://huggingface.co/ibm-granite/granite-guardian-hap-38m).
 
 To enable this detector, add the following entry under `services` in `docker-compose.yaml`:
 
@@ -304,6 +334,6 @@ The source code for this detector can be found on [this repository](https://gith
 
 ## Summary
 
-In this workshop, we configured the Guardrails ecosystem, which can be used to perform detections in both, user input and LLMs output.
+In this workshop, we configured a Guardrails ecosystem, which can be used to perform detections in both user input and LLMs output.
 While the generation server and orchestrator are ready for production use, the chunker and detectors used in this tutorial are intended for educational purposes only.
 Also, depending on your production workload, you'll most likely want to use a generation server like [vLLM](https://docs.vllm.ai/en/stable/index.html), as Ollama is intended mostly for local usage.
