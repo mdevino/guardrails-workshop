@@ -1,0 +1,32 @@
+openai:
+  service:
+    hostname: generation-server
+    port: 8000
+chunkers:
+  sentence_chunker:
+    type: sentence
+    service:
+      hostname: sentence-chunker
+      port: 50051
+detectors:
+  email:
+    type: text_contents
+    service:
+      hostname: email-detector
+      port: 8001
+    chunker_id: whole_doc_chunker
+    default_threshold: 0.5
+  email-sentence:
+    type: text_contents
+    service:
+        hostname: email-detector
+        port: 8001
+    chunker_id: sentence_chunker
+    default_threshold: 0.5
+  gg-hap-sentence:
+    type: text_contents
+    service:
+        hostname: gg-hap-detector
+        port: 8002
+    chunker_id: sentence_chunker
+    default_threshold: 0
