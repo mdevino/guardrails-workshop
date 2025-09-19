@@ -1,7 +1,7 @@
 services:
   # Ollama
   generation-server:
-    image: ollama/ollama:0.11.7
+    image: docker.io/ollama/ollama:0.11.7
     container_name: generation-server
     ports:
       - "8000:8000"

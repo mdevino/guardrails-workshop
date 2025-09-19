@@ -21,7 +21,7 @@ The Guardrails ecossystem is composed of four component types: generation server
 Use the commands below to download the docker images for each component.
 
 ```
-docker pull ollama/ollama:0.11.7
+docker pull docker.io/ollama/ollama:0.11.7
 docker pull quay.io/mdevin0/guardrails-orchestrator:latest
 docker pull quay.io/mdevin0/email-detector:latest
 docker pull quay.io/mdevin0/granite-guardian-hap-detector:latest
@@ -41,7 +41,7 @@ We'll be using the official Ollama docker image through docker compose. To start
 ```yaml
 services:
   generation-server:
-    image: ollama/ollama:0.11.7
+    image: docker.io/ollama/ollama:0.11.7
     container_name: generation-server
     ports:
       - "8000:8000"
